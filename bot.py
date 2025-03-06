@@ -1,35 +1,53 @@
 import os
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes
+)
 
-# Загружаем API-ключи из .env
+# Загружаем переменные окружения из .env
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# Функция обработки команды /start
-async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Привет! Я Travel-бот. Чем могу помочь?")
+# Команда /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Привет! Я Travel-бот. Чем могу помочь?\n\n"
+        "Доступные команды:\n"
+        "/start — начать диалог\n"
+        "/help — помощь"
+    )
 
-# Функция обработки текстовых сообщений
-async def handle_message(update: Update, context: CallbackContext):
-    user_message = update.message.text
-    await update.message.reply_text(f"Вы сказали: {user_message}")
+# Команда /help
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Я помогу вам спланировать путешествие!\n\n"
+        "Просто отправьте сообщение с деталями: "
+        "куда хотите поехать, на какие даты, "
+        "и какие у вас предпочтения.\n\n"
+        "Также доступна команда /start для перезапуска диалога."
+    )
 
-# Функция обработки ошибок
-async def error_handler(update: object, context: CallbackContext):
-    print(f"Произошла ошибка: {context.error}")
+# Обработка обычных текстовых сообщений
+async def echo_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = update.message.text
+    # Пока просто возвращаем эхо-сообщение
+    await update.message.reply_text(f"Вы написали: {user_text}")
 
 if __name__ == "__main__":
-    # Создаем приложение Telegram-бота
+    # Создаем приложение и указываем токен
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Добавляем обработчики команд и сообщений
+    # Регистрируем хендлеры команд
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CommandHandler("help", help_command))
 
-    # Обработчик ошибок
-    app.add_error_handler(error_handler)
+    # Регистрируем хендлер для любых текстовых сообщений (кроме команд)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_message))
 
     print("Bot is running...")
     app.run_polling()
